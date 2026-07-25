@@ -5,7 +5,13 @@ from sqlalchemy.orm import sessionmaker, Session
 import psycopg
 from pydantic import BaseModel
 from typing import Optional, List
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
+from starlette.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
+
+from routes.jwt_auth import router
 
 ## Database
 DATABASE_URL = "postgresql+psycopg://nanashi:Nanashi0210@localhost:5432/learn"
@@ -51,14 +57,15 @@ def get_db():
     finally:
         db.close()
 
-get_db()
 
 
-
+## API-SYSTEM
 
 app = FastAPI(title="SQLAlchemy API")
 
-
+app.include_router(router, prefix="/api")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+# templates = Jinja2Templates(directory="templates")
 @app.get("/")
 def home():
     return {"message": "welcome to api "
@@ -98,9 +105,13 @@ def update_user(user_id:int, user:UserCreate, db:Session= Depends(get_db)):
 
 
 @app.delete("/users/{user_id}")
-def delete_user(user_id:int,db:Session=Depends(get_db)):
-    db_user =  db.query(User).filter(User.id==user_id).first()
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user_id).first()
+
     if not db_user:
         raise HTTPException(status_code=404, detail="USER NOT FOUND")
-    else:
-        db.delete(db_user)
+
+    db.delete(db_user)
+    db.commit()
+
+    return {"message": "User Deleted Successfully"}
