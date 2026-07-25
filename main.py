@@ -84,3 +84,23 @@ def create_user(user: UserCreate, db:Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+@app.put("/users/{user_id}",response_model=UserResponse)
+def update_user(user_id:int, user:UserCreate, db:Session= Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404 , detail=" USER NOT FOUND ")
+    for field, value in user.model_dump().items():
+        setattr(db_user,field,value)
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id:int,db:Session=Depends(get_db)):
+    db_user =  db.query(User).filter(User.id==user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="USER NOT FOUND")
+    else:
+        db.delete(db_user)
